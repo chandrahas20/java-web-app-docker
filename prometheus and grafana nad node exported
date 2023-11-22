@@ -1,0 +1,100 @@
+
+prometheus:
+sudo apt update && sudo apt upgrade 
+sudo groupadd --system prometheus 
+sudo useradd -s /sbin/nologin --system -g prometheus prometheus 
+sudo mkdir /var/lib/prometheus 
+for i in rules rules.d files_sd; do sudo mkdir -p /etc/prometheus/${i}; done
+mkdir -p /tmp/prometheus
+cd /tmp/prometheus
+wget https://raw.githubusercontent.com/mannem302/download/main/prom.sh
+chmod 755 prom.sh
+sh prom.sh 
+tar xvfz prometheus-*.*.*.linux-amd64.tar.gz 
+cd prometheus*/ 
+sudo mv prometheus promtool /usr/local/bin/ 
+prometheus --version
+promtool --version 
+sudo mv prometheus.yml /etc/prometheus/prometheus.yml 
+sudo mv consoles/ console_libraries/ /etc/prometheus/
+cd $HOME 
+sudo vi /etc/systemd/system/prometheus.service
+      [Unit]
+      Description=Prometheus
+      Documentation=https://prometheus.io/docs/introduction/overview/
+      Wants=network-online.target
+      After=network-online.target
+      [Service]
+      Type=simple
+      User=prometheus
+      Group=prometheus
+      ExecReload=/bin/kill -HUP \$MAINPID
+      ExecStart=/usr/local/bin/prometheus \
+       --config.file=/etc/prometheus/prometheus.yml \
+       --storage.tsdb.path=/var/lib/prometheus \
+       --web.console.templates=/etc/prometheus/consoles \
+       --web.console.libraries=/etc/prometheus/console_libraries \
+       --web.listen-address=0.0.0.0:9090 \
+       --web.external-url=
+      SyslogIdentifier=prometheus
+      Restart=always
+      [Install]
+      WantedBy=multi-user.target 
+for i in rules rules.d files_sd; do sudo chown -R prometheus:prometheus /etc/prometheus/${i}; done
+for i in rules rules.d files_sd; do sudo chmod -R 775 /etc/prometheus/${i}; done
+sudo chown -R prometheus:prometheus /var/lib/prometheus/ 
+sudo systemctl daemon-reload 
+sudo systemctl start prometheus 
+sudo systemctl status prometheus 
+sudo systemctl enable prometheus 
+
+
+
+
+
+
+
+
+
+
+Node Exporter:
+cd /opt 
+sudo wget https://raw.githubusercontent.com/mannem302/download/main/node.sh
+sudo chmod 755 node.sh
+sudo sh node.sh 
+sudo tar -xvzf node_exporter-*.*.*.linux-amd64.tar.gz 
+sudo mv node_exporter-*.linux-amd64 node_exporter 
+sudo vi /etc/systemd/system/node_exporter.service 
+          [Unit]
+          Description=Prometheus Node Exporter
+          Documentation=https://github.com/prometheus/node_exporter
+          After=network-online.target
+          [Service]
+          User=root
+          EnvironmentFile=/etc/default/node_exporter
+          ExecStart=/opt/node_exporter/node_exporter $OPTIONS
+          Restart=on-failure
+          RestartSec=5
+          [Install]
+          WantedBy=multi-user.target 
+
+sudo systemctl daemon-reload 
+sudo vi /etc/default/node_exporter 
+      OPTIONS='' 
+sudo systemctl enable node_exporter 
+sudo systemctl start node_exporter
+sudo systemctl status node_exporter 
+vi /etc/prometheus/prometheus.yml 
+    paste Ip
+    - targets: ["34.222.120.66:9100"]
+
+
+
+Grafana Installation :
+  sudo apt-get install -y libfontconfig1 
+  wget https://dl.grafana.com/enterprise/release/grafana-enterprise_10.0.3_amd64.deb
+  sudo dpkg -i grafana-enterprise_10.0.3_amd64.deb 
+  sudo systemctl enable grafana-server
+  sudo systemctl start grafana-server 
+  sudo systemctl status grafana-server 
+10180
